@@ -180,6 +180,14 @@ const Buildings = (function () {
     group.add(chimCap);
 
     setShadow(group);
+
+    addBoxCollider(x - w / 2, z, 0.35, d / 2);
+    addBoxCollider(x + w / 2, z, 0.35, d / 2);
+    addBoxCollider(x, z - d / 2, w / 2, 0.35);
+    addBoxCollider(x - 1.8, z + d / 2, 1.4, 0.35);
+    addBoxCollider(x + 1.7, z + d / 2, 1.5, 0.35);
+
+    buildingList.push({ name: 'Бревенчатый сруб', x, z, group });
     return group;
   }
 
@@ -295,6 +303,7 @@ const Buildings = (function () {
       const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 1.1, 16), col);
       barrel.position.set(bx, 0.55, bz);
       group.add(barrel);
+      addBoxCollider(x + bx, z + bz, 0.4, 0.4);
     }
 
     for (const [cx, cz, cy, s] of [
@@ -305,9 +314,25 @@ const Buildings = (function () {
       const crate = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), woodMat);
       crate.position.set(cx, cy, cz);
       group.add(crate);
+      addBoxCollider(x + cx, z + cz, s / 2 + 0.1, s / 2 + 0.1);
     }
 
+    // 2.4 Тент
+    const tarpGeo = new THREE.PlaneGeometry(3.6, 3.2);
+    const tarp = new THREE.Mesh(tarpGeo, camoMat);
+    tarp.position.set(2.0, 2.0, 0.5);
+    tarp.rotation.x = -Math.PI / 2.3;
+    tarp.rotation.z = 0.15;
+    group.add(tarp);
+
     setShadow(group);
+
+    addBoxCollider(x, z, tw / 2, td / 2);
+    addBoxCollider(x, z + 4.0, 3.5, 0.35);
+    addBoxCollider(x - 3.8, z + 1.8, 0.35, 2.3);
+    addBoxCollider(x + 3.8, z + 1.8, 0.35, 2.3);
+
+    buildingList.push({ name: 'Военный блокпост', x, z, group });
     return group;
   }
 
@@ -339,6 +364,13 @@ const Buildings = (function () {
     const frontWallPart = new THREE.Mesh(new THREE.BoxGeometry(rw * 0.45, 1.6, 0.35), brickMat);
     frontWallPart.position.set(-rw / 4, 0.8, rd / 2);
     group.add(frontWallPart);
+
+    const rightPillar1 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.2, 1.5), brickMat);
+    rightPillar1.position.set(rw / 2, 1.1, -rd / 2 + 0.75);
+    group.add(rightPillar1);
+    const rightPillar2 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.4, 1.5), brickMat);
+    rightPillar2.position.set(rw / 2, 0.7, rd / 2 - 0.75);
+    group.add(rightPillar2);
 
     for (let i = 0; i < 6; i++) {
       const rx = -rw / 2 + 0.8 + i * 1.1;
@@ -373,6 +405,12 @@ const Buildings = (function () {
     }
 
     setShadow(group);
+
+    addBoxCollider(x, z - rd / 2, rw / 2, 0.35);
+    addBoxCollider(x - rw / 2, z - rd * 0.15, 0.35, rd * 0.35);
+    addBoxCollider(x - rw / 4, z + rd / 2, rw * 0.25, 0.35);
+
+    buildingList.push({ name: 'Заброшенный дом', x, z, group });
     return group;
   }
 
@@ -444,13 +482,34 @@ const Buildings = (function () {
     }
 
     setShadow(group);
+
+    addBoxCollider(x, z, bw / 2 + 0.2, bd / 2 + 0.2);
+
+    buildingList.push({ name: 'Бункер выживших', x, z, group });
     return group;
+  }
+
+  function checkCollision(px, pz, radius) {
+    const r = radius || 0.4;
+    for (const c of colliders) {
+      if (
+        px + r > c.minX &&
+        px - r < c.maxX &&
+        pz + r > c.minZ &&
+        pz - r < c.maxZ
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   return {
     createLogCabin,
     createMilitaryPost,
     createRuinedHouse,
-    createBunker
+    createBunker,
+    checkCollision,
+    getBuildingList: () => buildingList
   };
 })();

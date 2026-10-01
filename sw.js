@@ -1,5 +1,5 @@
 // Service Worker для отдельного приложения Survival Test
-const CACHE_NAME = 'survival-test-app-v1';
+const CACHE_NAME = 'survival-test-app-v3';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
