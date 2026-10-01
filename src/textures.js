@@ -1,291 +1,218 @@
-// Процедурный генератор высококачественных текстур (PBR) для 3D-моделей
-// Создаёт реалистичные текстуры дерева, брёвен, черепицы, камня, металла и мешков с песком.
+// Генератор процедурных текстур для построек и окружения
+// Создаёт естественные шероховатые текстуры без внешних тяжелых картинок
 window.Textures = (function () {
   const cache = {};
 
-  function makeCanvas(w, h) {
-    const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    return c;
+  function createNoiseCanvas(width, height, drawFn) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    drawFn(ctx, width, height);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    return texture;
   }
 
-  // 1. Деревянные доски (для пола, веранды, дверей и балок)
-  function createWoodPlanks() {
+  // 1. Дерево (доски пола, стены, стропила)
+  function getWoodTexture() {
     if (cache.wood) return cache.wood;
-    const c = makeCanvas(512, 512);
-    const ctx = c.getContext('2d');
-
-    ctx.fillStyle = '#61472e';
-    ctx.fillRect(0, 0, 512, 512);
-
-    const plankH = 64;
-    for (let y = 0; y < 512; y += plankH) {
-      // Вариация оттенка каждой доски
-      const shade = (Math.random() - 0.5) * 20;
-      ctx.fillStyle = `rgb(${95 + shade}, ${70 + shade * 0.8}, ${45 + shade * 0.6})`;
-      ctx.fillRect(0, y + 2, 512, plankH - 4);
-
-      // Волокна дерева (горизонтальные линии)
-      ctx.strokeStyle = 'rgba(40, 25, 12, 0.25)';
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 18; i++) {
-        const fy = y + 4 + Math.random() * (plankH - 8);
-        ctx.beginPath();
-        ctx.moveTo(0, fy);
-        ctx.bezierCurveTo(128, fy + (Math.random() - 0.5) * 4, 384, fy + (Math.random() - 0.5) * 4, 512, fy);
-        ctx.stroke();
+    cache.wood = createNoiseCanvas(512, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#654321';
+      ctx.fillRect(0, 0, w, h);
+      // Волокна дерева
+      for (let i = 0; i < 600; i++) {
+        ctx.fillStyle = (i % 2 === 0) ? 'rgba(74, 48, 22, 0.4)' : 'rgba(139, 94, 52, 0.35)';
+        const y = Math.random() * h;
+        const thickness = 1 + Math.random() * 3;
+        ctx.fillRect(0, y, w, thickness);
       }
-
-      // Щели между досками
-      ctx.fillStyle = '#1c120a';
-      ctx.fillRect(0, y, 512, 2);
-      ctx.fillStyle = '#7a5b3c';
-      ctx.fillRect(0, y + plankH - 2, 512, 1);
-
-      // Гвозди
-      for (let x = 32; x < 512; x += 128) {
-        ctx.fillStyle = '#222';
+      // Сучки
+      for (let k = 0; k < 5; k++) {
+        const kx = Math.random() * w;
+        const ky = Math.random() * h;
+        const rad = 6 + Math.random() * 10;
+        const grad = ctx.createRadialGradient(kx, ky, 2, kx, ky, rad);
+        grad.addColorStop(0, '#36210f');
+        grad.addColorStop(0.8, '#543419');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(x, y + 12, 2.5, 0, Math.PI * 2);
-        ctx.arc(x, y + plankH - 12, 2.5, 0, Math.PI * 2);
+        ctx.arc(kx, ky, rad, 0, Math.PI * 2);
         ctx.fill();
       }
-    }
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    cache.wood = tex;
-    return tex;
+    });
+    return cache.wood;
   }
 
-  // 2. Брёвна сруба (кора, продольные борозды)
-  function createLogBark() {
-    if (cache.logBark) return cache.logBark;
-    const c = makeCanvas(512, 512);
-    const ctx = c.getContext('2d');
-
-    ctx.fillStyle = '#4a3321';
-    ctx.fillRect(0, 0, 512, 512);
-
-    // Борозды коры сосны/кедра
-    for (let x = 0; x < 512; x += 4) {
-      const v = Math.sin(x * 0.1) * 15 + (Math.random() - 0.5) * 25;
-      ctx.fillStyle = `rgb(${74 + v}, ${51 + v * 0.7}, ${33 + v * 0.5})`;
-      ctx.fillRect(x, 0, 4, 512);
-    }
-    // Продольные тени и трещины
-    ctx.fillStyle = 'rgba(25, 15, 8, 0.4)';
-    for (let i = 0; i < 40; i++) {
-      const rx = Math.random() * 512;
-      ctx.fillRect(rx, 0, 2 + Math.random() * 3, 512);
-    }
-    // Лишайники и мох
-    ctx.fillStyle = 'rgba(80, 105, 55, 0.2)';
-    for (let i = 0; i < 30; i++) {
-      ctx.beginPath();
-      ctx.arc(Math.random() * 512, Math.random() * 512, 10 + Math.random() * 20, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    cache.logBark = tex;
-    return tex;
-  }
-
-  // 3. Черепица крыши (деревянный гонт / шифер)
-  function createRoofShingles() {
-    if (cache.shingles) return cache.shingles;
-    const c = makeCanvas(512, 512);
-    const ctx = c.getContext('2d');
-
-    ctx.fillStyle = '#2f2824';
-    ctx.fillRect(0, 0, 512, 512);
-
-    const shingleH = 48;
-    const shingleW = 64;
-    let row = 0;
-    for (let y = 0; y < 512; y += shingleH) {
-      const offset = (row % 2) * (shingleW / 2);
-      for (let x = -shingleW; x < 512 + shingleW; x += shingleW) {
-        const v = (Math.random() - 0.5) * 25;
-        ctx.fillStyle = `rgb(${60 + v}, ${52 + v * 0.9}, ${45 + v * 0.8})`;
-        ctx.fillRect(x + offset + 1, y, shingleW - 2, shingleH - 2);
-
-        // Тень под срезом черепицы
-        ctx.fillStyle = 'rgba(15, 12, 10, 0.6)';
-        ctx.fillRect(x + offset, y + shingleH - 4, shingleW, 4);
-
-        // Светлая фаска верхнего края
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-        ctx.fillRect(x + offset + 1, y, shingleW - 2, 2);
+  // 2. Брёвна сруба (продольная кора с темными бороздками)
+  function getLogTexture() {
+    if (cache.log) return cache.log;
+    cache.log = createNoiseCanvas(512, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#5c3a21';
+      ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 800; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(38, 22, 11, 0.5)' : 'rgba(115, 75, 42, 0.4)';
+        const x = Math.random() * w;
+        const width = 1 + Math.random() * 2.5;
+        ctx.fillRect(x, 0, width, h);
       }
-      row++;
-    }
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    cache.shingles = tex;
-    return tex;
+    });
+    return cache.log;
   }
 
-  // 4. Каменная кладка (фундамент, печь, дымоход)
-  function createStoneBricks() {
+  // 3. Каменная кладка (фундамент, очаг/труба)
+  function getStoneTexture() {
     if (cache.stone) return cache.stone;
-    const c = makeCanvas(512, 512);
-    const ctx = c.getContext('2d');
-
-    ctx.fillStyle = '#3a3835';
-    ctx.fillRect(0, 0, 512, 512);
-
-    const bH = 32;
-    const bW = 64;
-    let row = 0;
-    for (let y = 0; y < 512; y += bH) {
-      const offset = (row % 2) * (bW / 2);
-      for (let x = -bW; x < 512 + bW; x += bW) {
-        const val = (Math.random() - 0.5) * 30;
-        ctx.fillStyle = `rgb(${110 + val}, ${105 + val}, ${98 + val})`;
-        ctx.fillRect(x + offset + 2, y + 2, bW - 4, bH - 4);
-
-        // Тёмный раствор в швах
-        ctx.fillStyle = '#22201e';
-        ctx.strokeRect(x + offset + 1, y + 1, bW - 2, bH - 2);
+    cache.stone = createNoiseCanvas(512, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(0, 0, w, h);
+      // Пятна и зерно камня
+      for (let i = 0; i < 3000; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        const s = 1 + Math.random() * 4;
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(30, 41, 59, 0.6)' : 'rgba(148, 163, 184, 0.35)';
+        ctx.fillRect(x, y, s, s);
       }
-      row++;
-    }
+      // Швы между камнями
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.7)';
+      ctx.lineWidth = 3;
+      const rows = 8;
+      const rh = h / rows;
+      for (let r = 0; r <= rows; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * rh);
+        ctx.lineTo(w, r * rh);
+        ctx.stroke();
 
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    cache.stone = tex;
-    return tex;
+        const cols = 5;
+        const cw = w / cols;
+        const offset = (r % 2) * (cw / 2);
+        for (let c = 0; c <= cols + 1; c++) {
+          ctx.beginPath();
+          ctx.moveTo(c * cw - offset, r * rh);
+          ctx.lineTo(c * cw - offset, (r + 1) * rh);
+          ctx.stroke();
+        }
+      }
+    });
+    return cache.stone;
   }
 
-  // 5. Рифлёный металл / профнастил (крыша вышки, ангар)
-  function createCorrugatedMetal() {
-    if (cache.metal) return cache.metal;
-    const c = makeCanvas(256, 256);
-    const ctx = c.getContext('2d');
+  // 4. Кирпич (для заброшенного дома)
+  function getBrickTexture() {
+    if (cache.brick) return cache.brick;
+    cache.brick = createNoiseCanvas(512, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#8f3d2a';
+      ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 2000; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(180, 83, 56, 0.3)' : 'rgba(92, 33, 20, 0.4)';
+        ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+      }
+      // Швы раствора
+      ctx.strokeStyle = '#4b5563';
+      ctx.lineWidth = 2.5;
+      const rows = 16;
+      const rh = h / rows;
+      for (let r = 0; r <= rows; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * rh);
+        ctx.lineTo(w, r * rh);
+        ctx.stroke();
 
-    for (let x = 0; x < 256; x++) {
-      const sin = Math.sin((x / 16) * Math.PI * 2);
-      const bright = Math.floor(130 + sin * 50);
-      ctx.fillStyle = `rgb(${bright}, ${bright + 5}, ${bright + 10})`;
-      ctx.fillRect(x, 0, 1, 256);
-    }
-    // Пятна ржавчины
-    ctx.fillStyle = 'rgba(150, 75, 30, 0.35)';
-    for (let i = 0; i < 15; i++) {
-      ctx.beginPath();
-      ctx.arc(Math.random() * 256, Math.random() * 256, 5 + Math.random() * 12, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    cache.metal = tex;
-    return tex;
+        const cols = 8;
+        const cw = w / cols;
+        const offset = (r % 2) * (cw / 2);
+        for (let c = 0; c <= cols + 1; c++) {
+          ctx.beginPath();
+          ctx.moveTo(c * cw - offset, r * rh);
+          ctx.lineTo(c * cw - offset, (r + 1) * rh);
+          ctx.stroke();
+        }
+      }
+    });
+    return cache.brick;
   }
 
-  // 6. Мешковина (брустверы из мешков с песком)
-  function createSandbag() {
+  // 5. Ржавый металл (бочки, контейнеры, двери)
+  function getRustTexture() {
+    if (cache.rust) return cache.rust;
+    cache.rust = createNoiseCanvas(512, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#3f3f46';
+      ctx.fillRect(0, 0, w, h);
+      // Ржавые пятна
+      for (let i = 0; i < 15; i++) {
+        const rx = Math.random() * w;
+        const ry = Math.random() * h;
+        const rad = 20 + Math.random() * 60;
+        const grad = ctx.createRadialGradient(rx, ry, 5, rx, ry, rad);
+        grad.addColorStop(0, 'rgba(154, 52, 18, 0.85)');
+        grad.addColorStop(0.6, 'rgba(194, 65, 12, 0.5)');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(rx, ry, rad, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Зернистость металла
+      for (let k = 0; k < 2500; k++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.2)';
+        ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+      }
+    });
+    return cache.rust;
+  }
+
+  // 6. Профнастил / гофрированный лист (крыши, заборы)
+  function getCorrugatedTexture() {
+    if (cache.corrugated) return cache.corrugated;
+    cache.corrugated = createNoiseCanvas(512, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#52525b';
+      ctx.fillRect(0, 0, w, h);
+      // Полосы волн
+      const waveCount = 32;
+      const step = w / waveCount;
+      for (let i = 0; i < waveCount; i++) {
+        const x = i * step;
+        const grad = ctx.createLinearGradient(x, 0, x + step, 0);
+        grad.addColorStop(0, '#71717a');
+        grad.addColorStop(0.5, '#27272a');
+        grad.addColorStop(1, '#71717a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, 0, step, h);
+      }
+    });
+    return cache.corrugated;
+  }
+
+  // 7. Мешки с песком (брустверы)
+  function getSandbagTexture() {
     if (cache.sandbag) return cache.sandbag;
-    const c = makeCanvas(256, 256);
-    const ctx = c.getContext('2d');
-
-    ctx.fillStyle = '#9e8c6e';
-    ctx.fillRect(0, 0, 256, 256);
-
-    // Плетение джута/мешковины
-    ctx.fillStyle = 'rgba(60, 50, 35, 0.15)';
-    for (let x = 0; x < 256; x += 4) ctx.fillRect(x, 0, 2, 256);
-    for (let y = 0; y < 256; y += 4) ctx.fillRect(0, y, 256, 2);
-
-    // Швы и складки
-    ctx.strokeStyle = '#5a4e3b';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(10, 128);
-    ctx.lineTo(246, 128);
-    ctx.stroke();
-
-    const tex = new THREE.CanvasTexture(c);
-    cache.sandbag = tex;
-    return tex;
-  }
-
-  // 7. Армейский камуфляж / брезент
-  function createCamoTarp() {
-    if (cache.camo) return cache.camo;
-    const c = makeCanvas(256, 256);
-    const ctx = c.getContext('2d');
-
-    ctx.fillStyle = '#4d5c41'; // базовый хаки
-    ctx.fillRect(0, 0, 256, 256);
-
-    const colors = ['#303d27', '#6b5838', '#262920', '#5a6e4d'];
-    for (let i = 0; i < 40; i++) {
-      ctx.fillStyle = colors[i % colors.length];
-      ctx.beginPath();
-      ctx.ellipse(
-        Math.random() * 256, Math.random() * 256,
-        20 + Math.random() * 30, 15 + Math.random() * 25,
-        Math.random() * Math.PI, 0, Math.PI * 2
-      );
-      ctx.fill();
-    }
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    cache.camo = tex;
-    return tex;
-  }
-
-  // 8. Железобетон бункера
-  function createConcrete() {
-    if (cache.concrete) return cache.concrete;
-    const c = makeCanvas(512, 512);
-    const ctx = c.getContext('2d');
-
-    ctx.fillStyle = '#6b6e68';
-    ctx.fillRect(0, 0, 512, 512);
-
-    // Зернистость бетона
-    for (let i = 0; i < 3000; i++) {
-      const v = (Math.random() - 0.5) * 40;
-      ctx.fillStyle = `rgba(${107 + v}, ${110 + v}, ${104 + v}, 0.6)`;
-      ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
-    }
-    // Линии опалубки
-    ctx.strokeStyle = 'rgba(40, 42, 38, 0.4)';
-    ctx.lineWidth = 2;
-    for (let y = 128; y < 512; y += 128) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(512, y);
-      ctx.stroke();
-    }
-
-    const tex = new THREE.CanvasTexture(c);
-    cache.concrete = tex;
-    return tex;
+    cache.sandbag = createNoiseCanvas(256, 256, (ctx, w, h) => {
+      ctx.fillStyle = '#b59a68';
+      ctx.fillRect(0, 0, w, h);
+      // Текстура мешковины (сетка)
+      for (let x = 0; x < w; x += 4) {
+        ctx.fillStyle = 'rgba(120, 95, 55, 0.35)';
+        ctx.fillRect(x, 0, 1.5, h);
+      }
+      for (let y = 0; y < h; y += 4) {
+        ctx.fillStyle = 'rgba(120, 95, 55, 0.35)';
+        ctx.fillRect(0, y, w, 1.5);
+      }
+    });
+    return cache.sandbag;
   }
 
   return {
-    createWoodPlanks,
-    createLogBark,
-    createRoofShingles,
-    createStoneBricks,
-    createCorrugatedMetal,
-    createSandbag,
-    createCamoTarp,
-    createConcrete
+    getWoodTexture,
+    getLogTexture,
+    getStoneTexture,
+    getBrickTexture,
+    getRustTexture,
+    getCorrugatedTexture,
+    getSandbagTexture
   };
 })();

@@ -1,8 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <rect width="512" height="512" rx="120" fill="#1e3a8a" stroke="#60a5fa" stroke-width="14"/>
+  <!-- 3D House outline -->
   <polygon points="256,100 110,210 402,210" fill="#f59e0b" stroke="#ffffff" stroke-width="8"/>
   <rect x="130" y="210" width="252" height="150" fill="#3b82f6" stroke="#ffffff" stroke-width="8"/>
   <rect x="220" y="270" width="72" height="90" fill="#0f172a"/>
+  <!-- Badge: 3D -->
   <rect x="80" y="380" width="352" height="90" rx="20" fill="#dc2626" stroke="#ffffff" stroke-width="6"/>
   <text x="256" y="445" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="6">3D ТЕСТ</text>
 </svg>
