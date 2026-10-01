@@ -6,16 +6,16 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Полигон 3D: Модели и Камера 360°</title>
+  <title>Полигон 3D: 9 Моделей Укрытий и Свободная Камера</title>
   
-  <link rel="manifest" href="manifest.webmanifest?v=5">
+  <link rel="manifest" href="manifest.webmanifest?v=5.1">
   <meta name="theme-color" content="#1e3a8a">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" href="assets/icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=5.1">
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-      navigator.serviceWorker.register('sw.js?v=5').catch(function () {});
+      navigator.serviceWorker.register('sw.js?v=5.1').catch(function () {});
     }
   </script>
 </head>
@@ -24,16 +24,16 @@
   <canvas id="canvas3d"></canvas>
 
   <div id="ui-overlay">
-    <!-- Верхняя панель: статус, FPS, координаты, зум, время -->
+    <!-- Верхняя панель: FPS, координаты фокуса, зум, время -->
     <div id="top-bar">
       <div class="panel-block">
         <div>🚀 <span id="info-fps" class="badge">60 FPS</span></div>
-        <div>📍 <span id="info-coords" class="badge">X: -8.0, Z: -3.5</span></div>
-        <div>🔭 <span id="info-zoom" class="badge">14м</span></div>
+        <div>📍 <span id="info-coords" class="badge">X: -36.0, Z: -36.0</span></div>
+        <div>🔭 <span id="info-zoom" class="badge">11.0м</span></div>
         <div>⏱️ <span id="time-tag" class="badge">12:00</span></div>
       </div>
 
-      <!-- Переключатель времени суток (проверка динамических теней солнца) -->
+      <!-- Переключатель времени суток (тест теней) -->
       <div id="time-controls" class="panel-block">
         <button class="time-btn active" data-time="12">☀️ День</button>
         <button class="time-btn" data-time="18.2">🌅 Закат</button>
@@ -41,52 +41,57 @@
         <button class="time-btn" data-time="auto">⏰ Авто</button>
       </div>
 
-      <!-- Кнопка смены профиля качества (Ультра 3.3x / Высокое / Среднее / Эконом) -->
+      <!-- Кнопка смены профиля качества (Ультра / Высокое / Среднее / Эконом) -->
       <button id="quality-btn">⚡ УЛЬТРА (3.3x)</button>
     </div>
 
-    <!-- Кнопки быстрого перемещения и фокусировки на постройках -->
+    <!-- Горизонтальная панель выбора всех 9 построек (скроллируемая) -->
     <div id="teleport-bar">
-      <button id="tp-cabin" class="tp-btn">🏕️ Сруб</button>
-      <button id="tp-post" class="tp-btn">🎖️ Блокпост</button>
-      <button id="tp-ruin" class="tp-btn">🏚️ Руины</button>
-      <button id="tp-bunker" class="tp-btn">🚪 Бункер</button>
+      <button class="tp-btn active" data-id="cabin">🏕️ 1. Сруб</button>
+      <button class="tp-btn" data-id="burnt">🔥 2. Пепелище</button>
+      <button class="tp-btn" data-id="post">🎖️ 3. Блокпост</button>
+      <button class="tp-btn" data-id="ruin">🏚️ 4. Руины</button>
+      <button class="tp-btn" data-id="crater">💥 5. Авиаудар</button>
+      <button class="tp-btn" data-id="unfinished">🏗️ 6. Стройка</button>
+      <button class="tp-btn" data-id="quake">⚡ 7. Разлом</button>
+      <button class="tp-btn" data-id="breached">🧟 8. Штурм</button>
+      <button class="tp-btn" data-id="bunker">🚪 9. Бункер</button>
     </div>
 
-    <!-- Панель управления камерой 360° и приближением в упор -->
+    <!-- Панель управления камерой: зум, высота, авто-обзор 360°, сброс, обзор карты -->
     <div id="cam-controls">
       <button id="cam-zoom-in" class="cam-btn" title="Приблизить в упор">🔍 +</button>
       <button id="cam-zoom-out" class="cam-btn" title="Отдалить">🔍 −</button>
+      <button id="cam-up-btn" class="cam-btn" title="Поднять ракурс выше">⬆️</button>
+      <button id="cam-down-btn" class="cam-btn" title="Опустить ракурс ниже">⬇️</button>
       <button id="cam-orbit-btn" class="cam-btn" title="Авто-обзор 360° вокруг здания">↻ 360°</button>
-      <button id="cam-reset-btn" class="cam-btn" title="Сбросить ракурс камеры">📐 Вид</button>
-      <button id="cam-player-btn" class="cam-btn" title="Фокус на бойце">👤 Боец</button>
+      <button id="cam-reset-btn" class="cam-btn" title="Сбросить ракурс">📐 Вид</button>
+      <button id="cam-map-btn" class="cam-btn" title="Обзор всей карты целиком">🗺️ Обзор</button>
     </div>
 
-    <!-- Кнопка вызова зомби (правильный человеческий рост ~1.8м) -->
-    <div id="zombie-btn">ЗОМБИ +</div>
+    <!-- Плавающий джойстик свободного полёта по карте (левая рука) -->
+    <div id="move-stick"><div id="move-knob"></div></div>
+    <div id="move-hint">🕹️ Полёт по карте (левая рука)</div>
 
-    <!-- Кнопка авто-огня -->
-    <div id="auto-btn">АВТО<br>ОГОНЬ</div>
+    <!-- Информационная плашка выбранного здания -->
+    <div id="building-info-bar">
+      <span id="building-title">🏕️ Сруб — Бревенчатая изба с крыльцом и камином</span>
+    </div>
 
-    <!-- Плавающий стик ходьбы (левая половина) -->
-    <div id="walk-stick"><div id="walk-knob"></div></div>
-
-    <!-- Плавающий стик огня и прицела (правая половина) -->
-    <div id="fire-btn"><div id="fire-knob"></div></div>
+    <!-- Нижняя плашка версии -->
+    <div id="version-tag">ПОЛИГОН 3D v5.1 · 9 Моделей Укрытий · Свободная Камера 360°</div>
 
     <!-- Кнопка поворота экрана -->
     <div id="rot-btn">↻ две руки: горизонтально</div>
-
-    <div id="version-tag">ПОЛИГОН 3D v5.0 (Камера 360°) · <span id="quality-tag">Ультра 3.3x</span></div>
   </div>
 
   <!-- Three.js движок -->
   <script src="https://emrysmxo-maker.github.io/survival-game/assets/vendor/three.min.js"></script>
 
   <!-- Скрипты моделей и полигона -->
-  <script src="src/textures.js?v=5"></script>
-  <script src="src/buildings.js?v=5"></script>
-  <script src="src/game.js?v=5"></script>
+  <script src="src/textures.js?v=5.1"></script>
+  <script src="src/buildings.js?v=5.1"></script>
+  <script src="src/game.js?v=5.1"></script>
 
 </body>
 </html>

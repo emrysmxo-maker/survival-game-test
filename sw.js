@@ -1,5 +1,5 @@
-// Service Worker для Полигон 3D v5 (Камера 360°)
-const CACHE_NAME = 'poligon-3d-v5';
+// Service Worker для Полигон 3D v5.1 (9 Моделей Укрытий и Свободная Камера)
+const CACHE_NAME = 'poligon-3d-v5-1';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -14,6 +14,5 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Always fetch fresh network copies in test environment
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });

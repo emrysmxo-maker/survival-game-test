@@ -1,15 +1,19 @@
-// Главный контроллер тестового полигона моделей (Survival Game Test Sandbox)
-// Запускает 3D-сцену Three.js, честное солнце с динамическими тенями,
-// чистую почву, 4 постройки укрытий, персонажа, зомби и интерфейс
+// Главный контроллер тестового полигона (Survival Game Test: 9 Моделей Укрытий)
+// Режим свободного архитектурного осмотра:
+// - Персонаж-человек полностью убран по просьбе пользователя
+// - 9 реалистичных 3D-моделей лесных домов и укрытий с честными динамическими тенями от солнца
+// - Свободное перемещение по карте (сенсорный стик полёта, 2-пальцевый drag, WASD на ПК)
+// - Свободная камера 360° (1 палец вращение yaw/pitch, 360° авто-орбита)
+// - Зум в упор и вдаль (от 1.2м до 85.0м: pinch двумя пальцами, колесико мыши, кнопки [🔍 +]/[🔍 −])
 
 (function () {
   'use strict';
 
-  // 1. Инициализация сцены Three.js
+  // 1. Инициализация Three.js
   const canvas = document.getElementById('canvas3d');
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87ceeb); // Небесно-голубой фон
-  scene.fog = new THREE.FogExp2(0x87ceeb, 0.008);
+  scene.background = new THREE.Color(0x87ceeb); // Дневное небо
+  scene.fog = new THREE.FogExp2(0x87ceeb, 0.005);
 
   // 2. Рендерер
   const renderer = new THREE.WebGLRenderer({
@@ -21,18 +25,17 @@
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // 3. Камера 360° со сферическими координатами и зумом
-  let cameraYaw = 0;             // Горизонтальный угол (0..360°)
-  let cameraPitch = 0.42;        // Вертикальный наклон (~24° к горизонту)
-  let cameraDistance = 9.5;      // Стартовое приближение (плотный осмотр в упор)
-  let isAutoOrbit = false;       // Режим авто-вращения 360° вокруг постройки
-  let focusOnPlayer = false;     // Следить за бойцом или за постройкой
+  // 3. Параметры свободной камеры 360°
+  let cameraYaw = 0;              // Горизонтальный угол (0..360°)
+  let cameraPitch = 0.42;         // Вертикальный наклон (~24° к горизонту)
+  let cameraDistance = 11.0;      // Дистанция от фокуса (от 1.2м до 85м)
+  let isAutoOrbit = false;        // Автоматический кинематографический облёт
 
-  // Точка фокуса камеры (плавно перемещается между объектами)
-  const currentCamTarget = new THREE.Vector3(-8, 1.5, -8); // Стартуем с фокуса на Срубе
-  const desiredCamTarget = new THREE.Vector3(-8, 1.5, -8);
+  // Целевая точка фокуса камеры (плавно летит в пространстве)
+  const currentCamTarget = new THREE.Vector3(-36, 1.8, -36); // Старт у Сруба
+  const desiredCamTarget = new THREE.Vector3(-36, 1.8, -36);
 
-  const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.2, 300);
+  const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.2, 400);
 
   function updateZoomBadge() {
     const el = document.getElementById('info-zoom');
@@ -40,8 +43,12 @@
   }
 
   function zoomCamera(delta) {
-    cameraDistance = Math.max(1.8, Math.min(45.0, cameraDistance + delta));
+    cameraDistance = Math.max(1.2, Math.min(85.0, cameraDistance + delta));
     updateZoomBadge();
+  }
+
+  function adjustTargetHeight(delta) {
+    desiredCamTarget.y = Math.max(0.5, Math.min(25.0, desiredCamTarget.y + delta));
   }
 
   // 4. Профили качества графики (RedMagic 10 Pro: 1116x2480 нативно)
@@ -74,8 +81,8 @@
     if (qTag) qTag.textContent = p.name;
   }
 
-  // 5. Освещение и динамическое Солнце
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7);
+  // 5. Солнце и динамические тени
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.75);
   scene.add(hemiLight);
 
   const sunLight = new THREE.DirectionalLight(0xfffaed, 1.4);
@@ -83,15 +90,15 @@
   sunLight.shadow.mapSize.width = 2048;
   sunLight.shadow.mapSize.height = 2048;
   sunLight.shadow.camera.near = 1;
-  sunLight.shadow.camera.far = 120;
-  sunLight.shadow.camera.left = -28;
-  sunLight.shadow.camera.right = 28;
-  sunLight.shadow.camera.top = 28;
-  sunLight.shadow.camera.bottom = -28;
-  sunLight.shadow.bias = -0.0005;
+  sunLight.shadow.camera.far = 200;
+  sunLight.shadow.camera.left = -65;
+  sunLight.shadow.camera.right = 65;
+  sunLight.shadow.camera.top = 65;
+  sunLight.shadow.camera.bottom = -65;
+  sunLight.shadow.bias = -0.0004;
   scene.add(sunLight);
 
-  let sunOrbitRadius = 38;
+  let sunOrbitRadius = 65;
   let timeOfDay = 12; // 12:00 день
   let isAutoTime = false;
 
@@ -99,28 +106,24 @@
     const angle = ((timeOfDay - 6) / 24) * Math.PI * 2;
     sunLight.position.x = Math.cos(angle) * sunOrbitRadius;
     sunLight.position.y = Math.sin(angle) * sunOrbitRadius;
-    sunLight.position.z = 18;
+    sunLight.position.z = 25;
 
-    // Цвет неба и солнца в зависимости от высоты
     if (sunLight.position.y > 0) {
       const sunHeight = sunLight.position.y / sunOrbitRadius;
       if (sunHeight > 0.3) {
-        // День
         scene.background.setHex(0x87ceeb);
         scene.fog.color.setHex(0x87ceeb);
         sunLight.color.setHex(0xfffaed);
         sunLight.intensity = 1.35;
-        hemiLight.intensity = 0.7;
+        hemiLight.intensity = 0.75;
       } else {
-        // Закат / Рассвет
         scene.background.setHex(0xd97706);
         scene.fog.color.setHex(0xd97706);
         sunLight.color.setHex(0xf97316);
         sunLight.intensity = 1.1;
-        hemiLight.intensity = 0.45;
+        hemiLight.intensity = 0.5;
       }
     } else {
-      // Ночь
       scene.background.setHex(0x090d16);
       scene.fog.color.setHex(0x090d16);
       sunLight.color.setHex(0x38bdf8);
@@ -136,11 +139,11 @@
     }
   }
 
-  // 6. Чистая естественная почва без процедурных точек и пятен
+  // 6. Окружение: просторная лесная почва и дорожки между участками
   function createCleanGround() {
-    const groundGeom = new THREE.PlaneGeometry(160, 160, 1, 1);
+    const groundGeom = new THREE.PlaneGeometry(220, 220, 1, 1);
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x2b3824, // Естественный цвет лесной почвы и примятой травы
+      color: 0x2d3a24,
       roughness: 0.95,
       metalness: 0.05
     });
@@ -150,211 +153,95 @@
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Дорожки из гравия между постройками
+    // Гравийные тропинки, связывающие постройки в единый комплекс
     const pathMat = new THREE.MeshStandardMaterial({
-      color: 0x3d352e, // Утрамбованная грунтовая тропинка
+      color: 0x3d352e,
       roughness: 0.9
     });
-    const path1 = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 28), pathMat);
-    path1.rotation.x = -Math.PI / 2;
-    path1.position.set(0, 0.01, 0);
-    path1.receiveShadow = true;
-    scene.add(path1);
 
-    const path2 = new THREE.Mesh(new THREE.PlaneGeometry(28, 2.2), pathMat);
-    path2.rotation.x = -Math.PI / 2;
-    path2.position.set(0, 0.01, 0);
-    path2.receiveShadow = true;
-    scene.add(path2);
+    // 3 горизонтальные и 3 вертикальные тропы (по осям -36, 0, 36)
+    [-36, 0, 36].forEach(coord => {
+      const pathH = new THREE.Mesh(new THREE.PlaneGeometry(100, 2.5), pathMat);
+      pathH.rotation.x = -Math.PI / 2;
+      pathH.position.set(0, 0.01, coord);
+      pathH.receiveShadow = true;
+      scene.add(pathH);
+
+      const pathV = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 100), pathMat);
+      pathV.rotation.x = -Math.PI / 2;
+      pathV.position.set(coord, 0.01, 0);
+      pathV.receiveShadow = true;
+      scene.add(pathV);
+    });
   }
 
   createCleanGround();
 
-  // 7. Создание и размещение 4-х 3D-построек на полигоне
-  const buildings = window.Buildings;
+  // 7. Размещение ВСЕХ 9 моделей укрытий на полигоне
+  const b = window.Buildings;
 
-  // 7.1 Сруб (Северо-Запад: -8, -8)
-  const cabin = buildings.createLogCabin(-8, -8);
-  scene.add(cabin);
+  // Ряд 1 (Север: Z = -36)
+  scene.add(b.createLogCabin(-36, -36));         // 1. Охотничья бревенчатая изба
+  scene.add(b.createBurntCottage(0, -36));        // 2. Сгоревший коттедж (Пожар)
+  scene.add(b.createMilitaryPost(36, -36));       // 3. Военный блокпост с вышкой
 
-  // 7.2 Военный блокпост (Северо-Восток: 8, -8)
-  const post = buildings.createMilitaryPost(8, -8);
-  scene.add(post);
+  // Ряд 2 (Центр: Z = 0)
+  scene.add(b.createRuinedHouse(-36, 0));         // 4. Заброшенный кирпичный дом (Руины)
+  scene.add(b.createBombCraterHouse(0, 0));       // 5. Дом после авиаудара с воронкой
+  scene.add(b.createUnfinishedFramedHouse(36, 0)); // 6. Недостроенный каркасный дом (Стройка)
 
-  // 7.3 Заброшенный дом (Юго-Запад: -8, 8)
-  const ruin = buildings.createRuinedHouse(-8, 8);
-  scene.add(ruin);
+  // Ряд 3 (Юг: Z = 36)
+  scene.add(b.createEarthquakeChalet(-36, 36));   // 7. Шале после тектонического разлома
+  scene.add(b.createZombieBreachedFarm(0, 36));   // 8. Усадьба после штурма орды
+  scene.add(b.createBunker(36, 36));              // 9. Укреплённый бункер выживших
 
-  // 7.4 Бункер выживших (Юго-Восток: 8, 8)
-  const bunker = buildings.createBunker(8, 8);
-  scene.add(bunker);
+  // 8. Свободное сенсорное управление (RedMagic 10 Pro)
+  // Левая рука: плавающий джойстик полёта по карте
+  const moveStick = { active: false, touchId: null, startX: 0, startY: 0, dx: 0, dy: 0, maxDist: 48 };
 
-  // 8. Персонаж игрока (боец с оружием)
-  // Спавним прямо перед Срубом (-8, -3.5), чтобы он был сразу виден при старте
-  const player = {
-    x: -8,
-    z: -3.5,
-    speed: 5.5,
-    radius: 0.45,
-    rotation: 0,
-    aimAngle: 0,
-    mesh: null
-  };
-
-  function createPlayerMesh() {
-    const group = new THREE.Group();
-
-    // Тело бойца (тактический комбинезон)
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x374151, roughness: 0.7 });
-    const vestMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.6 });
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.8 });
-    const gunMat = new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.8, roughness: 0.3 });
-
-    // Торс
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.24, 0.85, 8), bodyMat);
-    torso.position.y = 1.05;
-    torso.castShadow = true;
-    group.add(torso);
-
-    // Бронежилет
-    const vest = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.52, 0.42), vestMat);
-    vest.position.y = 1.12;
-    vest.castShadow = true;
-    group.add(vest);
-
-    // Голова и тактический шлем
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), skinMat);
-    head.position.y = 1.62;
-    head.castShadow = true;
-    group.add(head);
-
-    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.21, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), vestMat);
-    helmet.position.y = 1.66;
-    helmet.castShadow = true;
-    group.add(helmet);
-
-    // Ноги
-    const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.7, 6), bodyMat);
-    legL.position.set(-0.16, 0.35, 0);
-    legL.castShadow = true;
-    group.add(legL);
-
-    const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.7, 6), bodyMat);
-    legR.position.set(0.16, 0.35, 0);
-    legR.castShadow = true;
-    group.add(legR);
-
-    // 3D автомат в руках
-    const rifle = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.85), gunMat);
-    rifle.position.set(0.22, 1.05, 0.45);
-    rifle.castShadow = true;
-    group.add(rifle);
-
-    group.position.set(player.x, 0, player.z);
-    scene.add(group);
-    player.mesh = group;
-  }
-
-  createPlayerMesh();
-
-  // 9. Зомби (спавн по кнопке)
-  const zombies = [];
-  function spawnZombie() {
-    const zGroup = new THREE.Group();
-    const shirtMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9 });
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0x5b7065, roughness: 0.85 }); // Бледная зеленоватая кожа
-
-    // Рост взрослого человека ~1.8м
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.22, 0.85, 8), shirtMat);
-    body.position.y = 1.05;
-    body.castShadow = true;
-    zGroup.add(body);
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), skinMat);
-    head.position.y = 1.62;
-    head.castShadow = true;
-    zGroup.add(head);
-
-    // Вытянутые руки вперёд
-    const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.65, 6), skinMat);
-    armL.rotation.x = Math.PI / 2 - 0.2;
-    armL.position.set(-0.28, 1.25, 0.32);
-    armL.castShadow = true;
-    zGroup.add(armL);
-
-    const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.65, 6), skinMat);
-    armR.rotation.x = Math.PI / 2 - 0.2;
-    armR.position.set(0.28, 1.25, 0.32);
-    armR.castShadow = true;
-    zGroup.add(armR);
-
-    // Ноги
-    const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.7, 6), shirtMat);
-    legL.position.set(-0.15, 0.35, 0);
-    legL.castShadow = true;
-    zGroup.add(legL);
-
-    const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.7, 6), shirtMat);
-    legR.position.set(0.15, 0.35, 0);
-    legR.castShadow = true;
-    zGroup.add(legR);
-
-    // Позиция спавна рядом с бойцом
-    const spawnAngle = Math.random() * Math.PI * 2;
-    const spawnDist = 4.5 + Math.random() * 2.5;
-    const zx = player.x + Math.cos(spawnAngle) * spawnDist;
-    const zz = player.z + Math.sin(spawnAngle) * spawnDist;
-
-    zGroup.position.set(zx, 0, zz);
-    scene.add(zGroup);
-    zombies.push({
-      x: zx,
-      z: zz,
-      mesh: zGroup,
-      speed: 2.1
-    });
-  }
-
-  // 10. Сенсорное управление RedMagic 10 Pro
-  const joystick = { active: false, touchId: null, startX: 0, startY: 0, dx: 0, dy: 0, maxDist: 48 };
-  const fireStick = { active: false, touchId: null, startX: 0, startY: 0, dx: 0, dy: 0, isFiring: false };
-
-  // Переменные для вращения камеры 360° и pinch-to-zoom
+  // Правая рука / экран: вращение 360°, зум (pinch), перетаскивание карты
   let isCamDragging = false;
   let camTouchId = null;
   let lastTouchX = 0;
   let lastTouchY = 0;
+
   let isPinching = false;
   let initialPinchDist = 0;
   let initialPinchCameraDist = 0;
 
-  const walkStickEl = document.getElementById('walk-stick');
-  const walkKnobEl = document.getElementById('walk-knob');
-  const fireBtnEl = document.getElementById('fire-btn');
-  const fireKnobEl = document.getElementById('fire-knob');
+  let isTwoFingerPan = false;
+  let lastPanCenterX = 0;
+  let lastPanCenterY = 0;
+
+  const moveStickEl = document.getElementById('move-stick');
+  const moveKnobEl = document.getElementById('move-knob');
 
   function isUI(t) {
     return t && t.closest && !!(
       t.closest('#top-bar') ||
       t.closest('#teleport-bar') ||
       t.closest('#cam-controls') ||
-      t.closest('#zombie-btn') ||
-      t.closest('#auto-btn') ||
+      t.closest('#building-info-bar') ||
       t.closest('#rot-btn')
     );
   }
 
   window.addEventListener('touchstart', (e) => {
-    // Двупальцевый жест зума (Pinch-to-zoom)
+    // 2 пальца: мультитач (Pinch зум + Двупальцевое перетаскивание карты)
     if (e.touches.length === 2) {
       e.preventDefault();
       isPinching = true;
+      isTwoFingerPan = true;
       isCamDragging = false;
+
       initialPinchDist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
       initialPinchCameraDist = cameraDistance;
+
+      lastPanCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      lastPanCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       return;
     }
 
@@ -362,36 +249,24 @@
       const t = e.changedTouches[i];
       if (isUI(t.target)) continue;
 
-      // Левый нижний угол экрана — джойстик ходьбы
-      if (t.clientX < window.innerWidth * 0.4 && t.clientY > window.innerHeight * 0.45) {
-        if (!joystick.active) {
-          joystick.active = true;
-          joystick.touchId = t.identifier;
-          joystick.startX = t.clientX;
-          joystick.startY = t.clientY;
-          joystick.dx = 0;
-          joystick.dy = 0;
-          walkStickEl.style.display = 'block';
-          walkStickEl.style.left = `${t.clientX}px`;
-          walkStickEl.style.top = `${t.clientY}px`;
-          walkKnobEl.style.transform = 'translate(0px, 0px)';
+      // Левая нижняя треть экрана — стик свободного полёта по карте
+      if (t.clientX < window.innerWidth * 0.42 && t.clientY > window.innerHeight * 0.4) {
+        if (!moveStick.active) {
+          moveStick.active = true;
+          moveStick.touchId = t.identifier;
+          moveStick.startX = t.clientX;
+          moveStick.startY = t.clientY;
+          moveStick.dx = 0;
+          moveStick.dy = 0;
+          if (moveStickEl) {
+            moveStickEl.style.display = 'block';
+            moveStickEl.style.left = `${t.clientX}px`;
+            moveStickEl.style.top = `${t.clientY}px`;
+          }
+          if (moveKnobEl) moveKnobEl.style.transform = 'translate(0px, 0px)';
         }
       }
-      // Правый нижний угол экрана — плавающий стик прицела и огня
-      else if (t.clientX > window.innerWidth * 0.6 && t.clientY > window.innerHeight * 0.45) {
-        if (!fireStick.active) {
-          fireStick.active = true;
-          fireStick.touchId = t.identifier;
-          fireStick.startX = t.clientX;
-          fireStick.startY = t.clientY;
-          fireStick.isFiring = true;
-          fireBtnEl.style.display = 'block';
-          fireBtnEl.style.left = `${t.clientX}px`;
-          fireBtnEl.style.top = `${t.clientY}px`;
-          fireKnobEl.style.transform = 'translate(0px, 0px)';
-        }
-      }
-      // Верхняя или центральная часть экрана — свободное вращение камеры 360°
+      // Остальная область экрана — свободное вращение камеры на 360°
       else {
         if (!isCamDragging && !isPinching) {
           isCamDragging = true;
@@ -406,16 +281,34 @@
   }, { passive: false });
 
   window.addEventListener('touchmove', (e) => {
-    // Обработка двух пальцев (Pinch Zoom)
-    if (isPinching && e.touches.length >= 2) {
+    // 2 пальца: обработка зума и панорамирования
+    if (e.touches.length >= 2) {
       e.preventDefault();
       const curDist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
       const ratio = initialPinchDist / (curDist || 1);
-      cameraDistance = Math.max(1.8, Math.min(45.0, initialPinchCameraDist * ratio));
+      cameraDistance = Math.max(1.2, Math.min(85.0, initialPinchCameraDist * ratio));
       updateZoomBadge();
+
+      // Панорамирование карты двумя пальцами
+      const curCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const curCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const panDX = curCenterX - lastPanCenterX;
+      const panDY = curCenterY - lastPanCenterY;
+      lastPanCenterX = curCenterX;
+      lastPanCenterY = curCenterY;
+
+      // Сдвигаем точку фокуса относительно угла обзора
+      const panSpeed = (cameraDistance / 800) * 1.5;
+      const forwardX = Math.sin(cameraYaw);
+      const forwardZ = Math.cos(cameraYaw);
+      const rightX = Math.cos(cameraYaw);
+      const rightZ = -Math.sin(cameraYaw);
+
+      desiredCamTarget.x -= (rightX * panDX - forwardX * panDY) * panSpeed;
+      desiredCamTarget.z -= (rightZ * panDX - forwardZ * panDY) * panSpeed;
       return;
     }
 
@@ -427,43 +320,31 @@
         e.preventDefault();
         const dx = t.clientX - lastTouchX;
         const dy = t.clientY - lastTouchY;
-        cameraYaw -= dx * 0.007; // поворот по кругу 360°
-        cameraPitch = Math.max(0.05, Math.min(1.52, cameraPitch + dy * 0.007)); // наклон
+        cameraYaw -= dx * 0.007;
+        cameraPitch = Math.max(0.05, Math.min(1.52, cameraPitch + dy * 0.007));
         lastTouchX = t.clientX;
         lastTouchY = t.clientY;
       }
-      // Джойстик ходьбы
-      else if (joystick.active && t.identifier === joystick.touchId) {
+      // Стик полёта по карте
+      else if (moveStick.active && t.identifier === moveStick.touchId) {
         e.preventDefault();
-        const diffX = t.clientX - joystick.startX;
-        const diffY = t.clientY - joystick.startY;
+        const diffX = t.clientX - moveStick.startX;
+        const diffY = t.clientY - moveStick.startY;
         const dist = Math.hypot(diffX, diffY);
         const a = Math.atan2(diffY, diffX);
-        const cl = Math.min(dist, joystick.maxDist);
-        if (dist > 8) {
-          const factor = (cl - 8) / (joystick.maxDist - 8);
-          joystick.dx = Math.cos(a) * factor;
-          joystick.dy = Math.sin(a) * factor;
+        const cl = Math.min(dist, moveStick.maxDist);
+
+        if (dist > 6) {
+          const factor = (cl - 6) / (moveStick.maxDist - 6);
+          moveStick.dx = Math.cos(a) * factor;
+          moveStick.dy = Math.sin(a) * factor;
         } else {
-          joystick.dx = 0;
-          joystick.dy = 0;
+          moveStick.dx = 0;
+          moveStick.dy = 0;
         }
-        walkKnobEl.style.transform = `translate(${Math.cos(a) * cl}px, ${Math.sin(a) * cl}px)`;
-      }
-      // Джойстик прицела и огня
-      else if (fireStick.active && t.identifier === fireStick.touchId) {
-        e.preventDefault();
-        const diffX = t.clientX - fireStick.startX;
-        const diffY = t.clientY - fireStick.startY;
-        const dist = Math.hypot(diffX, diffY);
-        if (dist > 12) {
-          const a = Math.atan2(diffX, diffY);
-          // Учитываем вращение камеры при прицеливании
-          player.aimAngle = a + cameraYaw;
+        if (moveKnobEl) {
+          moveKnobEl.style.transform = `translate(${Math.cos(a) * cl}px, ${Math.sin(a) * cl}px)`;
         }
-        const cl = Math.min(dist, 50);
-        const a = Math.atan2(diffY, diffX);
-        fireKnobEl.style.transform = `translate(${Math.cos(a) * cl}px, ${Math.sin(a) * cl}px)`;
       }
     }
   }, { passive: false });
@@ -471,6 +352,7 @@
   window.addEventListener('touchend', (e) => {
     if (e.touches.length < 2) {
       isPinching = false;
+      isTwoFingerPan = false;
     }
     for (let i = 0; i < e.changedTouches.length; i++) {
       const t = e.changedTouches[i];
@@ -478,91 +360,126 @@
         isCamDragging = false;
         camTouchId = null;
       }
-      if (joystick.active && t.identifier === joystick.touchId) {
-        joystick.active = false;
-        joystick.dx = 0;
-        joystick.dy = 0;
-        walkStickEl.style.display = 'none';
-      }
-      if (fireStick.active && t.identifier === fireStick.touchId) {
-        fireStick.active = false;
-        fireStick.isFiring = false;
-        fireBtnEl.style.display = 'none';
+      if (moveStick.active && t.identifier === moveStick.touchId) {
+        moveStick.active = false;
+        moveStick.dx = 0;
+        moveStick.dy = 0;
+        if (moveStickEl) moveStickEl.style.display = 'none';
       }
     }
   });
 
-  // Вспомогательное мышиное управление (для ПК тестов)
-  let isMouseDown = false;
+  // 9. Мышь и клавиатура (для ПК)
+  let isMouseRotating = false;
+  let isMousePanning = false;
   let mouseStartX = 0;
   let mouseStartY = 0;
 
   window.addEventListener('mousedown', (e) => {
     if (isUI(e.target)) return;
-    if (e.button === 0 || e.button === 2) {
-      isMouseDown = true;
-      mouseStartX = e.clientX;
-      mouseStartY = e.clientY;
+    mouseStartX = e.clientX;
+    mouseStartY = e.clientY;
+    if (e.button === 0) {
+      isMouseRotating = true;
       isAutoOrbit = false;
       document.getElementById('cam-orbit-btn')?.classList.remove('active');
+    } else if (e.button === 1 || e.button === 2) {
+      isMousePanning = true;
     }
   });
 
   window.addEventListener('mousemove', (e) => {
-    if (isMouseDown) {
+    if (isMouseRotating) {
       const dx = e.clientX - mouseStartX;
       const dy = e.clientY - mouseStartY;
       cameraYaw -= dx * 0.006;
       cameraPitch = Math.max(0.05, Math.min(1.52, cameraPitch + dy * 0.006));
       mouseStartX = e.clientX;
       mouseStartY = e.clientY;
-    } else if (player && !isUI(e.target)) {
-      const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-      player.aimAngle = Math.atan2(e.clientX - cx, e.clientY - cy) + cameraYaw;
+    } else if (isMousePanning) {
+      const dx = e.clientX - mouseStartX;
+      const dy = e.clientY - mouseStartY;
+      mouseStartX = e.clientX;
+      mouseStartY = e.clientY;
+
+      const panSpeed = (cameraDistance / 600);
+      const forwardX = Math.sin(cameraYaw);
+      const forwardZ = Math.cos(cameraYaw);
+      const rightX = Math.cos(cameraYaw);
+      const rightZ = -Math.sin(cameraYaw);
+
+      desiredCamTarget.x -= (rightX * dx - forwardX * dy) * panSpeed;
+      desiredCamTarget.z -= (rightZ * dx - forwardZ * dy) * panSpeed;
     }
   });
 
-  window.addEventListener('mouseup', () => { isMouseDown = false; });
-  window.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+  window.addEventListener('mouseup', () => {
+    isMouseRotating = false;
+    isMousePanning = false;
+  });
+  window.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // Колесико мыши — зум
   window.addEventListener('wheel', (e) => {
-    zoomCamera(Math.sign(e.deltaY) * 1.5);
+    zoomCamera(Math.sign(e.deltaY) * 2.0);
   }, { passive: true });
 
-  // Клавиатура (ПК)
   const keys = {};
   window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
-    if (e.code === 'KeyQ') applyQuality(curQualityIdx + 1);
-    if (e.code === 'KeyZ') spawnZombie();
-    if (e.code === 'Equal' || e.code === 'NumpadAdd') zoomCamera(-2.0);
-    if (e.code === 'Minus' || e.code === 'NumpadSubtract') zoomCamera(2.0);
-    if (e.code === 'Digit1') focusBuilding(-8, -8);
-    if (e.code === 'Digit2') focusBuilding(8, -8);
-    if (e.code === 'Digit3') focusBuilding(-8, 8);
-    if (e.code === 'Digit4') focusBuilding(8, 8);
+    if (e.code === 'KeyQ') cameraYaw += 0.08;
+    if (e.code === 'KeyE') cameraYaw -= 0.08;
+    if (e.code === 'KeyR') adjustTargetHeight(1.0);
+    if (e.code === 'KeyF') adjustTargetHeight(-1.0);
+    if (e.code === 'Equal' || e.code === 'NumpadAdd') zoomCamera(-2.5);
+    if (e.code === 'Minus' || e.code === 'NumpadSubtract') zoomCamera(2.5);
+    if (e.code === 'Space') {
+      isAutoOrbit = !isAutoOrbit;
+      document.getElementById('cam-orbit-btn')?.classList.toggle('active', isAutoOrbit);
+    }
+    // Быстрый переход по клавишам 1..9
+    const digits = ['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9'];
+    const idx = digits.indexOf(e.code);
+    if (idx !== -1) {
+      const bl = b.getBuildingList();
+      if (bl[idx]) focusBuildingById(bl[idx].id);
+    }
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-  // 11. Фокусировка камеры и телепортация
-  function focusBuilding(bx, bz) {
-    focusOnPlayer = false;
-    desiredCamTarget.set(bx, 1.8, bz);
-    player.x = bx;
-    player.z = bz + 4.5; // Ставим игрока перед входом в здание
-    if (player.mesh) player.mesh.position.set(player.x, 0, player.z);
+  // 10. Фокусировка на любом из 9 зданий
+  function focusBuildingById(id) {
+    const bl = b.getBuildingList();
+    const item = bl.find(x => x.id === id);
+    if (!item) return;
+
+    desiredCamTarget.set(item.x, item.camY || 2.0, item.z);
+    cameraDistance = item.dist || 12.0;
+    updateZoomBadge();
+
+    // Обновляем заголовок и активную кнопку
+    const titleEl = document.getElementById('building-title');
+    if (titleEl) {
+      titleEl.textContent = `${item.name} — ${item.desc}`;
+    }
+
+    document.querySelectorAll('.tp-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-id') === id);
+    });
   }
 
-  // 12. Привязка UI кнопок
-  document.getElementById('tp-cabin')?.addEventListener('click', () => focusBuilding(-8, -8));
-  document.getElementById('tp-post')?.addEventListener('click', () => focusBuilding(8, -8));
-  document.getElementById('tp-ruin')?.addEventListener('click', () => focusBuilding(-8, 8));
-  document.getElementById('tp-bunker')?.addEventListener('click', () => focusBuilding(8, 8));
+  // Привязка кнопок зданий
+  document.querySelectorAll('.tp-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      focusBuildingById(id);
+    });
+  });
 
-  // Кнопки управления камерой 360° и зумом
-  document.getElementById('cam-zoom-in')?.addEventListener('click', () => zoomCamera(-2.0));
-  document.getElementById('cam-zoom-out')?.addEventListener('click', () => zoomCamera(2.0));
+  // Кнопки панели камеры
+  document.getElementById('cam-zoom-in')?.addEventListener('click', () => zoomCamera(-2.5));
+  document.getElementById('cam-zoom-out')?.addEventListener('click', () => zoomCamera(2.5));
+  document.getElementById('cam-up-btn')?.addEventListener('click', () => adjustTargetHeight(1.5));
+  document.getElementById('cam-down-btn')?.addEventListener('click', () => adjustTargetHeight(-1.5));
 
   const orbitBtn = document.getElementById('cam-orbit-btn');
   orbitBtn?.addEventListener('click', () => {
@@ -573,28 +490,31 @@
   document.getElementById('cam-reset-btn')?.addEventListener('click', () => {
     cameraYaw = 0;
     cameraPitch = 0.42;
-    cameraDistance = 9.5;
+    cameraDistance = 12.0;
     isAutoOrbit = false;
     orbitBtn?.classList.remove('active');
     updateZoomBadge();
   });
 
-  document.getElementById('cam-player-btn')?.addEventListener('click', () => {
-    focusOnPlayer = true;
+  document.getElementById('cam-map-btn')?.addEventListener('click', () => {
+    desiredCamTarget.set(0, 2.0, 0);
+    cameraDistance = 75.0;
+    cameraPitch = 0.95; // Высокий обзор птичьего полёта
+    isAutoOrbit = false;
+    orbitBtn?.classList.remove('active');
+    updateZoomBadge();
+    const titleEl = document.getElementById('building-title');
+    if (titleEl) titleEl.textContent = '🗺️ Обзор всего полигона (9 моделей укрытий)';
   });
 
   document.getElementById('quality-btn')?.addEventListener('click', () => {
     applyQuality(curQualityIdx + 1);
   });
 
-  document.getElementById('zombie-btn')?.addEventListener('click', () => {
-    spawnZombie();
-  });
-
-  // Кнопки времени суток
+  // Время суток
   const timeBtns = document.querySelectorAll('.time-btn');
   timeBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', () => {
       timeBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const val = btn.getAttribute('data-time');
@@ -608,32 +528,10 @@
     });
   });
 
-  // 13. Игровой цикл
+  // 11. Игровой цикл
   let lastTime = performance.now();
   let fpsFrames = 0;
   let fpsTimer = 0;
-
-  function updateCamera(dt) {
-    if (isAutoOrbit) {
-      cameraYaw += dt * 0.35; // Автоматический кинематографичный облёт
-    }
-
-    if (focusOnPlayer) {
-      desiredCamTarget.set(player.x, 1.2, player.z);
-    }
-
-    // Плавная интерполяция к целевой точке фокуса
-    currentCamTarget.lerp(desiredCamTarget, dt * 6.0);
-
-    // Сферические координаты камеры 360°
-    const cy = currentCamTarget.y + cameraDistance * Math.sin(cameraPitch);
-    const horizDist = cameraDistance * Math.cos(cameraPitch);
-    const cx = currentCamTarget.x + horizDist * Math.sin(cameraYaw);
-    const cz = currentCamTarget.z + horizDist * Math.cos(cameraYaw);
-
-    camera.position.set(cx, cy, cz);
-    camera.lookAt(currentCamTarget);
-  }
 
   function gameLoop(now) {
     requestAnimationFrame(gameLoop);
@@ -641,7 +539,7 @@
     const dt = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
 
-    // FPS подсчет
+    // FPS
     fpsFrames++;
     fpsTimer += dt;
     if (fpsTimer >= 0.5) {
@@ -652,92 +550,60 @@
       fpsTimer = 0;
     }
 
-    // Авто-время
     if (isAutoTime) {
       timeOfDay = (timeOfDay + dt * 0.5) % 24;
       updateSunPosition();
     }
 
-    // Движение игрока
-    let mx = 0, mz = 0;
-    if (joystick.active) {
-      // Движение относительно угла камеры!
-      const moveAngle = Math.atan2(joystick.dx, -joystick.dy) + cameraYaw;
-      const mag = Math.hypot(joystick.dx, joystick.dy);
-      mx = Math.sin(moveAngle) * mag;
-      mz = -Math.cos(moveAngle) * mag;
-    } else {
-      let kx = 0, kz = 0;
-      if (keys['KeyW'] || keys['ArrowUp']) kz -= 1;
-      if (keys['KeyS'] || keys['ArrowDown']) kz += 1;
-      if (keys['KeyA'] || keys['ArrowLeft']) kx -= 1;
-      if (keys['KeyD'] || keys['ArrowRight']) kx += 1;
-      if (kx !== 0 || kz !== 0) {
-        const keyAngle = Math.atan2(kx, kz) + cameraYaw;
-        mx = Math.sin(keyAngle);
-        mz = Math.cos(keyAngle);
-      }
+    // Свободный полёт по карте через стик
+    if (moveStick.active && (moveStick.dx !== 0 || moveStick.dy !== 0)) {
+      const moveSpeed = Math.max(10, cameraDistance * 0.95);
+      const moveAngle = Math.atan2(moveStick.dx, -moveStick.dy) + cameraYaw;
+      const mag = Math.hypot(moveStick.dx, moveStick.dy);
+
+      desiredCamTarget.x += Math.sin(moveAngle) * mag * moveSpeed * dt;
+      desiredCamTarget.z -= Math.cos(moveAngle) * mag * moveSpeed * dt;
     }
 
-    if (mx !== 0 || mz !== 0) {
-      const nextX = player.x + mx * player.speed * dt;
-      const nextZ = player.z + mz * player.speed * dt;
-
-      // Проверка столкновения со зданиями
-      const col = buildings.checkCollision(nextX, nextZ, player.radius);
-      if (!col.collided) {
-        player.x = nextX;
-        player.z = nextZ;
-      } else {
-        player.x = col.pushX;
-        player.z = col.pushZ;
-      }
-
-      player.rotation = Math.atan2(mx, mz);
+    // Клавиатура WASD на ПК
+    let kx = 0, kz = 0;
+    if (keys['KeyW'] || keys['ArrowUp']) kz -= 1;
+    if (keys['KeyS'] || keys['ArrowDown']) kz += 1;
+    if (keys['KeyA'] || keys['ArrowLeft']) kx -= 1;
+    if (keys['KeyD'] || keys['ArrowRight']) kx += 1;
+    if (kx !== 0 || kz !== 0) {
+      const keySpeed = Math.max(12, cameraDistance * 1.1);
+      const keyAngle = Math.atan2(kx, kz) + cameraYaw;
+      desiredCamTarget.x += Math.sin(keyAngle) * keySpeed * dt;
+      desiredCamTarget.z -= Math.cos(keyAngle) * keySpeed * dt;
     }
 
-    // Поворот персонажа к прицелу
-    if (fireStick.active || keys['Space']) {
-      player.rotation = player.aimAngle;
+    // Авто-облёт 360°
+    if (isAutoOrbit) {
+      cameraYaw += dt * 0.35;
     }
 
-    if (player.mesh) {
-      player.mesh.position.set(player.x, 0, player.z);
-      player.mesh.rotation.y = player.rotation;
-    }
+    // Плавная интерполяция к целевой точке фокуса
+    currentCamTarget.lerp(desiredCamTarget, dt * 7.0);
 
-    // Зомби преследуют игрока
-    for (let z of zombies) {
-      const dx = player.x - z.x;
-      const dz = player.z - z.z;
-      const dist = Math.hypot(dx, dz);
-      if (dist > 0.8) {
-        const nx = z.x + (dx / dist) * z.speed * dt;
-        const nz = z.z + (dz / dist) * z.speed * dt;
-        const col = buildings.checkCollision(nx, nz, 0.45);
-        if (!col.collided) {
-          z.x = nx;
-          z.z = nz;
-        }
-        z.mesh.position.set(z.x, 0, z.z);
-        z.mesh.rotation.y = Math.atan2(dx, dz);
-      }
-    }
+    // Сферические координаты камеры 360°
+    const cy = currentCamTarget.y + cameraDistance * Math.sin(cameraPitch);
+    const horizDist = cameraDistance * Math.cos(cameraPitch);
+    const cx = currentCamTarget.x + horizDist * Math.sin(cameraYaw);
+    const cz = currentCamTarget.z + horizDist * Math.cos(cameraYaw);
 
-    // Обновление координат в UI
+    camera.position.set(cx, cy, cz);
+    camera.lookAt(currentCamTarget);
+
+    // Обновление координат в панели
     const coordEl = document.getElementById('info-coords');
     if (coordEl) {
-      coordEl.textContent = `X: ${player.x.toFixed(1)}, Z: ${player.z.toFixed(1)}`;
+      coordEl.textContent = `X: ${currentCamTarget.x.toFixed(1)}, Z: ${currentCamTarget.z.toFixed(1)}`;
     }
 
-    // Обновление камеры
-    updateCamera(dt);
-
-    // Рендер сцены
     renderer.render(scene, camera);
   }
 
-  // Ресайз окна
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -745,9 +611,10 @@
   });
 
   // Запуск
-  applyQuality(0); // По умолчанию Ультра 3.3x
+  applyQuality(0); // Ультра 3.3x
   updateSunPosition();
   updateZoomBadge();
+  focusBuildingById('cabin');
   requestAnimationFrame(gameLoop);
 
 })();
