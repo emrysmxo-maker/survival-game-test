@@ -1,24 +1,19 @@
 {
-  "name": "Survival Game: Тест-полигон",
-  "short_name": "Survival Тест",
-  "description": "Тестовый полигон 3D-моделей построек, динамических теней солнца и графики",
-  "start_url": "./index.html",
-  "scope": "./",
+  "id": "survival-test-poligon-app-2026",
+  "name": "Survival: Тест-Полигон",
+  "short_name": "Тест-Полигон",
+  "description": "Тестовый полигон 3D-построек, динамических теней солнца и графики Survival Game",
+  "start_url": "https://emrysmxo-maker.github.io/survival-game-test/?app=test",
+  "scope": "https://emrysmxo-maker.github.io/survival-game-test/",
   "display": "standalone",
   "orientation": "landscape",
   "background_color": "#0c120c",
-  "theme_color": "#166534",
+  "theme_color": "#142618",
   "icons": [
     {
-      "src": "https://emrysmxo-maker.github.io/survival-game/assets/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "https://emrysmxo-maker.github.io/survival-game/assets/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]

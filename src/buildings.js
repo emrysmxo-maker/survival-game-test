@@ -54,7 +54,6 @@ const Buildings = (function () {
     group.add(foundation);
 
     // 1.2 Бревенчатые стены (складка брёвен со срубленными венцами)
-    // Передняя стена с дверным проемом
     for (let i = 0; i < numLogs; i++) {
       const ly = 0.4 + (i + 0.5) * logRadius * 1.8;
       // Левая часть передней стены
@@ -118,7 +117,7 @@ const Buildings = (function () {
 
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.95, 0.08), woodMat);
     door.position.set(-0.25, 1.35, d / 2 + 0.35);
-    door.rotation.y = -0.45; // дверь гостеприимно приоткрыта
+    door.rotation.y = -0.45; // дверь приоткрыта
     group.add(door);
 
     // 1.5 Крыльцо с навесом и перилами (Porch)
@@ -181,15 +180,6 @@ const Buildings = (function () {
     group.add(chimCap);
 
     setShadow(group);
-
-    // Добавляем коллайдеры для стен избы
-    addBoxCollider(x - w / 2, z, 0.35, d / 2);
-    addBoxCollider(x + w / 2, z, 0.35, d / 2);
-    addBoxCollider(x, z - d / 2, w / 2, 0.35);
-    addBoxCollider(x - 1.8, z + d / 2, 1.4, 0.35);
-    addBoxCollider(x + 1.7, z + d / 2, 1.5, 0.35);
-
-    buildingList.push({ name: 'Бревенчатый сруб', x, z, group });
     return group;
   }
 
@@ -216,7 +206,6 @@ const Buildings = (function () {
     const towerH = 5.2;
     const tw = 3.2, td = 3.2;
 
-    // 4 опорных столба вышки
     const legs = [
       [-tw / 2, -td / 2], [tw / 2, -td / 2],
       [-tw / 2, td / 2], [tw / 2, td / 2]
@@ -227,7 +216,6 @@ const Buildings = (function () {
       group.add(leg);
     }
 
-    // Диагональные раскосы для прочности
     for (let level = 0; level < 2; level++) {
       const y0 = 1.0 + level * 2.0;
       const braceX = new THREE.Mesh(new THREE.BoxGeometry(tw, 0.12, 0.12), woodMat);
@@ -241,17 +229,14 @@ const Buildings = (function () {
       group.add(braceZ);
     }
 
-    // Лестница на вышку
     const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.6, towerH, 0.08), woodMat);
     ladder.position.set(0, towerH / 2, td / 2 + 0.12);
     group.add(ladder);
 
-    // Платформа наблюдателя
     const plat = new THREE.Mesh(new THREE.BoxGeometry(tw + 0.8, 0.2, td + 0.8), woodMat);
     plat.position.set(0, towerH, 0);
     group.add(plat);
 
-    // Перила площадки
     const railH = 1.1;
     for (const [rx, rz, rw, rd] of [
       [0, (td + 0.8) / 2, tw + 0.8, 0.08],
@@ -264,27 +249,18 @@ const Buildings = (function () {
       group.add(rail);
     }
 
-    // Крыша вышки из профнастила
     const tRoof = new THREE.Mesh(new THREE.BoxGeometry(tw + 1.2, 0.1, td + 1.2), metalMat);
     tRoof.position.set(0, towerH + 2.3, 0);
     tRoof.rotation.x = -0.08;
     group.add(tRoof);
 
-    // Стойки крыши
     for (const [lx, lz] of legs) {
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.3, 0.14), woodMat);
       post.position.set(lx, towerH + 1.15, lz);
       group.add(post);
     }
 
-    // Прожектор на углу
-    const spotGeo = new THREE.CylinderGeometry(0.2, 0.3, 0.4, 12);
-    const spot = new THREE.Mesh(spotGeo, darkSteelMat);
-    spot.rotation.z = Math.PI / 2;
-    spot.position.set(tw / 2 + 0.3, towerH + 1.2, td / 2 + 0.3);
-    group.add(spot);
-
-    // 2.2 Брустверы из мешков с песком (Sandbag revetments)
+    // 2.2 Брустверы из мешков с песком
     function makeSandbagWall(wx, wz, length, isRotated) {
       const bagGeo = new THREE.BoxGeometry(0.85, 0.28, 0.45);
       const layers = 4;
@@ -306,12 +282,11 @@ const Buildings = (function () {
       }
     }
 
-    // U-образное укрепление вокруг КПП
     makeSandbagWall(0, 4.0, 7.0, false);
     makeSandbagWall(-3.8, 1.8, 4.5, true);
     makeSandbagWall(3.8, 1.8, 4.5, true);
 
-    // 2.3 Бочки ГСМ и ящики боеприпасов
+    // 2.3 Бочки и ящики
     for (const [bx, bz, col] of [
       [-2.8, 0.5, oliveDrumMat],
       [-2.8, 1.4, darkSteelMat],
@@ -320,10 +295,8 @@ const Buildings = (function () {
       const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 1.1, 16), col);
       barrel.position.set(bx, 0.55, bz);
       group.add(barrel);
-      addBoxCollider(x + bx, z + bz, 0.4, 0.4);
     }
 
-    // Деревянные ящики
     for (const [cx, cz, cy, s] of [
       [2.2, 0.6, 0.35, 0.7],
       [2.2, 1.5, 0.35, 0.7],
@@ -332,26 +305,9 @@ const Buildings = (function () {
       const crate = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), woodMat);
       crate.position.set(cx, cy, cz);
       group.add(crate);
-      addBoxCollider(x + cx, z + cz, s / 2 + 0.1, s / 2 + 0.1);
     }
 
-    // 2.4 Маскировочный тент (Camo Tarp)
-    const tarpGeo = new THREE.PlaneGeometry(3.6, 3.2);
-    const tarp = new THREE.Mesh(tarpGeo, camoMat);
-    tarp.position.set(2.0, 2.0, 0.5);
-    tarp.rotation.x = -Math.PI / 2.3;
-    tarp.rotation.z = 0.15;
-    group.add(tarp);
-
     setShadow(group);
-
-    // Коллайдеры вышки и мешков
-    addBoxCollider(x, z, tw / 2, td / 2);
-    addBoxCollider(x, z + 4.0, 3.5, 0.35);
-    addBoxCollider(x - 3.8, z + 1.8, 0.35, 2.3);
-    addBoxCollider(x + 3.8, z + 1.8, 0.35, 2.3);
-
-    buildingList.push({ name: 'Военный блокпост', x, z, group });
     return group;
   }
 
@@ -372,53 +328,36 @@ const Buildings = (function () {
 
     const rw = 7.0, rd = 5.6;
 
-    // 3.1 Уцелевшие и обломанные стены
-    // Задняя стена (сохранилась лучше)
     const backWall = new THREE.Mesh(new THREE.BoxGeometry(rw, 2.6, 0.35), brickMat);
     backWall.position.set(0, 1.3, -rd / 2);
     group.add(backWall);
 
-    // Левая стена (с выломанным углом)
     const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.4, rd * 0.7), brickMat);
     leftWall.position.set(-rw / 2, 1.2, -rd * 0.15);
     group.add(leftWall);
 
-    // Обломок передней стены
     const frontWallPart = new THREE.Mesh(new THREE.BoxGeometry(rw * 0.45, 1.6, 0.35), brickMat);
     frontWallPart.position.set(-rw / 4, 0.8, rd / 2);
     group.add(frontWallPart);
 
-    // Правая стена с проломом
-    const rightPillar1 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.2, 1.5), brickMat);
-    rightPillar1.position.set(rw / 2, 1.1, -rd / 2 + 0.75);
-    group.add(rightPillar1);
-    const rightPillar2 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.4, 1.5), brickMat);
-    rightPillar2.position.set(rw / 2, 0.7, rd / 2 - 0.75);
-    group.add(rightPillar2);
-
-    // 3.2 Обрушенная стропильная система (Rafters)
     for (let i = 0; i < 6; i++) {
       const rx = -rw / 2 + 0.8 + i * 1.1;
       const rafter = new THREE.Mesh(new THREE.BoxGeometry(0.14, 3.8, 0.14), charredWoodMat);
       if (i % 2 === 0) {
-        // Упавшие внутрь балки
         rafter.position.set(rx, 1.2, 0);
         rafter.rotation.set(0.4, 0.2, (Math.random() - 0.5) * 0.3);
       } else {
-        // Торчащие обломанные стропила
         rafter.position.set(rx, 2.6, -1.2);
         rafter.rotation.x = -0.55;
       }
       group.add(rafter);
     }
 
-    // 3.3 Уцелевший скат крыши (с одной стороны)
     const brokenRoof = new THREE.Mesh(new THREE.BoxGeometry(rw * 0.55, 0.12, rd * 0.65), brokenRoofMat);
     brokenRoof.position.set(-1.4, 2.8, -1.2);
     brokenRoof.rotation.x = -0.52;
     group.add(brokenRoof);
 
-    // 3.4 Завалы кирпичей и обломков на земле
     for (let b = 0; b < 24; b++) {
       const debris = new THREE.Mesh(
         new THREE.BoxGeometry(0.35 + Math.random() * 0.4, 0.2 + Math.random() * 0.2, 0.35 + Math.random() * 0.4),
@@ -434,12 +373,6 @@ const Buildings = (function () {
     }
 
     setShadow(group);
-
-    addBoxCollider(x, z - rd / 2, rw / 2, 0.35);
-    addBoxCollider(x - rw / 2, z - rd * 0.15, 0.35, rd * 0.35);
-    addBoxCollider(x - rw / 4, z + rd / 2, rw * 0.25, 0.35);
-
-    buildingList.push({ name: 'Заброшенный дом', x, z, group });
     return group;
   }
 
@@ -462,27 +395,22 @@ const Buildings = (function () {
 
     const bw = 5.4, bd = 4.8, bh = 2.4;
 
-    // 4.1 Железобетонный входной портал
     const portal = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), concMat);
     portal.position.set(0, bh / 2, 0);
     group.add(portal);
 
-    // Внутренняя ниша шлюза (вырез входа)
     const recess = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.05, 1.4), steelMat);
     recess.position.set(0, 1.05, bd / 2 - 0.5);
     group.add(recess);
 
-    // Тяжёлая герметичная бронедверь с ригелями и штурвалом
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.9, 0.22), steelMat);
     door.position.set(0, 1.05, bd / 2 - 1.1);
     group.add(door);
 
-    // Запирающий штурвал на двери
     const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.04, 8, 24), yellowMat);
     wheel.position.set(0, 1.05, bd / 2 - 0.95);
     group.add(wheel);
 
-    // 4.2 Защитный вал из мешков с песком на крыше бункера
     for (let r = 0; r < 2; r++) {
       const ry = bh + 0.15 + r * 0.28;
       for (let i = -2; i <= 2; i++) {
@@ -496,7 +424,6 @@ const Buildings = (function () {
       }
     }
 
-    // 4.3 Вентиляционная шахта / грибок
     const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 1.6, 16), ventMat);
     pipe.position.set(-1.8, bh + 0.8, -1.2);
     group.add(pipe);
@@ -505,12 +432,10 @@ const Buildings = (function () {
     pipeCap.position.set(-1.8, bh + 1.65, -1.2);
     group.add(pipeCap);
 
-    // 4.4 Радиомачта с антенной связи
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 4.2, 8), steelMat);
     mast.position.set(1.8, bh + 2.1, -1.2);
     group.add(mast);
 
-    // Поперечные перекладины антенны
     for (const ay of [bh + 2.8, bh + 3.4, bh + 4.0]) {
       const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 6), steelMat);
       bar.rotation.z = Math.PI / 2;
@@ -519,35 +444,13 @@ const Buildings = (function () {
     }
 
     setShadow(group);
-
-    addBoxCollider(x, z, bw / 2 + 0.2, bd / 2 + 0.2);
-
-    buildingList.push({ name: 'Бункер выживших', x, z, group });
     return group;
-  }
-
-  // Проверка столкновения игрока со стенами
-  function checkCollision(px, pz, radius) {
-    const r = radius || 0.4;
-    for (const c of colliders) {
-      if (
-        px + r > c.minX &&
-        px - r < c.maxX &&
-        pz + r > c.minZ &&
-        pz - r < c.maxZ
-      ) {
-        return true;
-      }
-    }
-    return false;
   }
 
   return {
     createLogCabin,
     createMilitaryPost,
     createRuinedHouse,
-    createBunker,
-    checkCollision,
-    getBuildingList: () => buildingList
+    createBunker
   };
 })();

@@ -76,7 +76,7 @@ const Textures = (function () {
       ctx.fillRect(x, 0, 4, 512);
     }
     // Продольные тени и трещины
-    ctx.fillStyle = 'rgba(255, 15, 8, 0.4)';
+    ctx.fillStyle = 'rgba(25, 15, 8, 0.4)';
     for (let i = 0; i < 40; i++) {
       const rx = Math.random() * 512;
       ctx.fillRect(rx, 0, 2 + Math.random() * 3, 512);
