@@ -1,6 +1,6 @@
 // Процедурный генератор высококачественных текстур (PBR) для 3D-моделей
 // Создаёт реалистичные текстуры дерева, брёвен, черепицы, камня, металла и мешков с песком.
-const Textures = (function () {
+window.Textures = (function () {
   const cache = {};
 
   function makeCanvas(w, h) {

@@ -3,7 +3,7 @@
 // Все элементы отбрасывают динамические тени от солнца (castShadow = true, receiveShadow = true)
 // Никаких статичных чёрных пятен под зданиями нет — тени зависят исключительно от положения солнца!
 
-const Buildings = (function () {
+window.Buildings = (function () {
   const colliders = []; // [ { minX, maxX, minZ, maxZ } ]
   const buildingList = [];
 
@@ -32,10 +32,10 @@ const Buildings = (function () {
     const group = new THREE.Group();
     group.position.set(x, 0, z);
 
-    const logTex = Textures.createLogBark();
-    const woodTex = Textures.createWoodPlanks();
-    const shingleTex = Textures.createRoofShingles();
-    const stoneTex = Textures.createStoneBricks();
+    const logTex = window.Textures.createLogBark();
+    const woodTex = window.Textures.createWoodPlanks();
+    const shingleTex = window.Textures.createRoofShingles();
+    const stoneTex = window.Textures.createStoneBricks();
 
     const logMat = new THREE.MeshStandardMaterial({ map: logTex, roughness: 0.85 });
     const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.7 });
@@ -198,10 +198,10 @@ const Buildings = (function () {
     const group = new THREE.Group();
     group.position.set(x, 0, z);
 
-    const woodTex = Textures.createWoodPlanks();
-    const metalTex = Textures.createCorrugatedMetal();
-    const sandTex = Textures.createSandbag();
-    const camoTex = Textures.createCamoTarp();
+    const woodTex = window.Textures.createWoodPlanks();
+    const metalTex = window.Textures.createCorrugatedMetal();
+    const sandTex = window.Textures.createSandbag();
+    const camoTex = window.Textures.createCamoTarp();
 
     const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.8 });
     const metalMat = new THREE.MeshStandardMaterial({ map: metalTex, roughness: 0.4, metalness: 0.7 });
@@ -343,9 +343,9 @@ const Buildings = (function () {
     const group = new THREE.Group();
     group.position.set(x, 0, z);
 
-    const stoneTex = Textures.createStoneBricks();
-    const woodTex = Textures.createWoodPlanks();
-    const shingleTex = Textures.createRoofShingles();
+    const stoneTex = window.Textures.createStoneBricks();
+    const woodTex = window.Textures.createWoodPlanks();
+    const shingleTex = window.Textures.createRoofShingles();
 
     const brickMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.95 });
     const charredWoodMat = new THREE.MeshStandardMaterial({ map: woodTex, color: 0x3d3025, roughness: 0.9 });
@@ -421,9 +421,9 @@ const Buildings = (function () {
     const group = new THREE.Group();
     group.position.set(x, 0, z);
 
-    const concTex = Textures.createConcrete();
-    const metalTex = Textures.createCorrugatedMetal();
-    const sandTex = Textures.createSandbag();
+    const concTex = window.Textures.createConcrete();
+    const metalTex = window.Textures.createCorrugatedMetal();
+    const sandTex = window.Textures.createSandbag();
 
     const concMat = new THREE.MeshStandardMaterial({ map: concTex, roughness: 0.85 });
     const steelMat = new THREE.MeshStandardMaterial({ color: 0x3b423c, roughness: 0.4, metalness: 0.8 });
