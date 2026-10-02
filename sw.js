@@ -1,5 +1,5 @@
-// Service Worker для Полигон 3D v5.1 (9 Моделей Укрытий и Свободная Камера)
-const CACHE_NAME = 'poligon-3d-v5-1';
+// Service Worker для Полигон 3D v5.2 (9 Моделей Укрытий и Свободная Камера)
+const CACHE_NAME = 'poligon-3d-v5-2';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

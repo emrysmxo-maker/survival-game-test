@@ -52,12 +52,7 @@
   }
 
   // 4. Профили качества графики (RedMagic 10 Pro: 1116x2480 нативно)
-  const QUALITY_PROFILES = [
-    { name: 'Ультра (3.3x)', dprMul: 1.0, shadowRes: 2048, shadows: true },
-    { name: 'Высокое (2.0x)', dprMul: 0.65, shadowRes: 1024, shadows: true },
-    { name: 'Среднее (1.5x)', dprMul: 0.5, shadowRes: 512, shadows: true },
-    { name: 'Эконом (1.0x)', dprMul: 0.35, shadowRes: 256, shadows: false }
-  ];
+  const QUALITY_PROFILES = [\n    { name: 'Ультра (3.3x)', dprMul: 1.0, shadowRes: 2048, shadows: true },\n    { name: 'Высокое (2.0x)', dprMul: 0.65, shadowRes: 1024, shadows: true },\n    { name: 'Среднее (1.5x)', dprMul: 0.5, shadowRes: 512, shadows: true },\n    { name: 'Эконом (1.0x)', dprMul: 0.35, shadowRes: 256, shadows: false }\n  ];
   let curQualityIdx = 0;
 
   function applyQuality(idx) {
@@ -222,6 +217,8 @@
       t.closest('#teleport-bar') ||
       t.closest('#cam-controls') ||
       t.closest('#building-info-bar') ||
+      t.closest('#move-hint-container') ||
+      t.closest('#stick-mode-btn') ||
       t.closest('#rot-btn')
     );
   }
@@ -301,14 +298,14 @@
       lastPanCenterY = curCenterY;
 
       // Сдвигаем точку фокуса относительно угла обзора
-      const panSpeed = (cameraDistance / 800) * 1.5;
-      const forwardX = Math.sin(cameraYaw);
-      const forwardZ = Math.cos(cameraYaw);
+      const panSpeed = (cameraDistance / 600);
+      const forwardX = -Math.sin(cameraYaw);
+      const forwardZ = -Math.cos(cameraYaw);
       const rightX = Math.cos(cameraYaw);
       const rightZ = -Math.sin(cameraYaw);
 
-      desiredCamTarget.x -= (rightX * panDX - forwardX * panDY) * panSpeed;
-      desiredCamTarget.z -= (rightZ * panDX - forwardZ * panDY) * panSpeed;
+      desiredCamTarget.x -= (rightX * panDX + forwardX * (-panDY)) * panSpeed;
+      desiredCamTarget.z -= (rightZ * panDX + forwardZ * (-panDY)) * panSpeed;
       return;
     }
 
@@ -403,13 +400,13 @@
       mouseStartY = e.clientY;
 
       const panSpeed = (cameraDistance / 600);
-      const forwardX = Math.sin(cameraYaw);
-      const forwardZ = Math.cos(cameraYaw);
+      const forwardX = -Math.sin(cameraYaw);
+      const forwardZ = -Math.cos(cameraYaw);
       const rightX = Math.cos(cameraYaw);
       const rightZ = -Math.sin(cameraYaw);
 
-      desiredCamTarget.x -= (rightX * dx - forwardX * dy) * panSpeed;
-      desiredCamTarget.z -= (rightZ * dx - forwardZ * dy) * panSpeed;
+      desiredCamTarget.x -= (rightX * dx + forwardX * (-dy)) * panSpeed;
+      desiredCamTarget.z -= (rightZ * dx + forwardZ * (-dy)) * panSpeed;
     }
   });
 
@@ -528,6 +525,34 @@
     });
   });
 
+  // Инверсия направления стика (прямой полёт vs реверс)
+  let isStickInverted = false;
+  try {
+    const saved = localStorage.getItem('poligon_stick_inverted');
+    if (saved !== null) isStickInverted = saved === '1';
+  } catch (e) {}
+
+  const stickModeBtn = document.getElementById('stick-mode-btn');
+  function updateStickModeUI() {
+    if (!stickModeBtn) return;
+    if (isStickInverted) {
+      stickModeBtn.textContent = '🔄 Стик: Инверт';
+      stickModeBtn.classList.add('inverted');
+    } else {
+      stickModeBtn.textContent = '🕹️ Стик: Прямой';
+      stickModeBtn.classList.remove('inverted');
+    }
+  }
+
+  stickModeBtn?.addEventListener('click', () => {
+    isStickInverted = !isStickInverted;
+    try {
+      localStorage.setItem('poligon_stick_inverted', isStickInverted ? '1' : '0');
+    } catch (e) {}
+    updateStickModeUI();
+  });
+  updateStickModeUI();
+
   // 11. Игровой цикл
   let lastTime = performance.now();
   let fpsFrames = 0;
@@ -555,29 +580,45 @@
       updateSunPosition();
     }
 
-    // Свободный полёт по карте через стик
+    // Свободный полёт по карте через стик с корректной проекцией на угол обзора
     if (moveStick.active && (moveStick.dx !== 0 || moveStick.dy !== 0)) {
       const moveSpeed = Math.max(10, cameraDistance * 0.95);
-      const moveAngle = Math.atan2(moveStick.dx, -moveStick.dy) + cameraYaw;
-      const mag = Math.hypot(moveStick.dx, moveStick.dy);
+      
+      const forwardX = -Math.sin(cameraYaw);
+      const forwardZ = -Math.cos(cameraYaw);
+      const rightX = Math.cos(cameraYaw);
+      const rightZ = -Math.sin(cameraYaw);
 
-      desiredCamTarget.x += Math.sin(moveAngle) * mag * moveSpeed * dt;
-      desiredCamTarget.z -= Math.cos(moveAngle) * mag * moveSpeed * dt;
+      // moveStick.dy < 0 когда палец тянут вверх (вглубь экрана)
+      // moveStick.dx > 0 когда палец тянут вправо
+      const inv = isStickInverted ? -1 : 1;
+      const inputFwd = (-moveStick.dy) * inv;
+      const inputRight = (moveStick.dx) * inv;
+
+      desiredCamTarget.x += (rightX * inputRight + forwardX * inputFwd) * moveSpeed * dt;
+      desiredCamTarget.z += (rightZ * inputRight + forwardZ * inputFwd) * moveSpeed * dt;
     }
 
-    // Клавиатура WASD на ПК
-    let kx = 0, kz = 0;
-    if (keys['KeyW'] || keys['ArrowUp']) kz -= 1;
-    if (keys['KeyS'] || keys['ArrowDown']) kz += 1;
-    if (keys['KeyA'] || keys['ArrowLeft']) kx -= 1;
-    if (keys['KeyD'] || keys['ArrowRight']) kx += 1;
-    if (kx !== 0 || kz !== 0) {
+    // Клавиатура WASD на ПК с корректной проекцией
+    let keyFwd = 0, keyRight = 0;
+    if (keys['KeyW'] || keys['ArrowUp']) keyFwd += 1;
+    if (keys['KeyS'] || keys['ArrowDown']) keyFwd -= 1;
+    if (keys['KeyA'] || keys['ArrowLeft']) keyRight -= 1;
+    if (keys['KeyD'] || keys['ArrowRight']) keyRight += 1;
+    if (keyFwd !== 0 || keyRight !== 0) {
       const keySpeed = Math.max(12, cameraDistance * 1.1);
-      const keyAngle = Math.atan2(kx, kz) + cameraYaw;
-      desiredCamTarget.x += Math.sin(keyAngle) * keySpeed * dt;
-      desiredCamTarget.z -= Math.cos(keyAngle) * keySpeed * dt;
-    }
+      const len = Math.hypot(keyRight, keyFwd);
+      const normRight = keyRight / len;
+      const normFwd = keyFwd / len;
 
+      const forwardX = -Math.sin(cameraYaw);
+      const forwardZ = -Math.cos(cameraYaw);
+      const rightX = Math.cos(cameraYaw);
+      const rightZ = -Math.sin(cameraYaw);
+
+      desiredCamTarget.x += (rightX * normRight + forwardX * normFwd) * keySpeed * dt;
+      desiredCamTarget.z += (rightZ * normRight + forwardZ * normFwd) * keySpeed * dt;
+    }
     // Авто-облёт 360°
     if (isAutoOrbit) {
       cameraYaw += dt * 0.35;

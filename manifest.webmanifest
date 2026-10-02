@@ -1,9 +1,9 @@
 {
-  "id": "poligon-3d-models-app-v5-1",
+  "id": "poligon-3d-models-app-v5-2",
   "name": "Полигон 3D: 9 Моделей",
   "short_name": "Полигон 3D",
-  "description": "Тестовый полигон 9 3D-моделей укрытий Survival Game и свободная камера",
-  "start_url": "./index.html?v=5.1",
+  "description": "Тестовый полигон 9 реалистичных 3D-моделей укрытий Survival Game и свободная камера",
+  "start_url": "./index.html?v=5.2",
   "scope": "./",
   "display": "standalone",
   "orientation": "landscape",

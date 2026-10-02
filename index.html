@@ -8,14 +8,14 @@
   <meta http-equiv="Expires" content="0">
   <title>Полигон 3D: 9 Моделей Укрытий и Свободная Камера</title>
   
-  <link rel="manifest" href="manifest.webmanifest?v=5.1">
+  <link rel="manifest" href="manifest.webmanifest?v=5.2">
   <meta name="theme-color" content="#1e3a8a">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" href="assets/icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=5.1">
+  <link rel="stylesheet" href="style.css?v=5.2">
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-      navigator.serviceWorker.register('sw.js?v=5.1').catch(function () {});
+      navigator.serviceWorker.register('sw.js?v=5.2').catch(function () {});
     }
   </script>
 </head>
@@ -71,7 +71,10 @@
 
     <!-- Плавающий джойстик свободного полёта по карте (левая рука) -->
     <div id="move-stick"><div id="move-knob"></div></div>
-    <div id="move-hint">🕹️ Полёт по карте (левая рука)</div>
+    <div id="move-hint-container">
+      <button id="stick-mode-btn" title="Переключить прямое/инвертированное направление стика">🕹️ Стик: Прямой</button>
+      <div id="move-hint">Полёт по карте (левая рука)</div>
+    </div>
 
     <!-- Информационная плашка выбранного здания -->
     <div id="building-info-bar">
@@ -79,7 +82,7 @@
     </div>
 
     <!-- Нижняя плашка версии -->
-    <div id="version-tag">ПОЛИГОН 3D v5.1 · 9 Моделей Укрытий · Свободная Камера 360°</div>
+    <div id="version-tag">ПОЛИГОН 3D v5.2 · 9 Моделей Укрытий · Свободная Камера 360°</div>
 
     <!-- Кнопка поворота экрана -->
     <div id="rot-btn">↻ две руки: горизонтально</div>
@@ -89,9 +92,9 @@
   <script src="https://emrysmxo-maker.github.io/survival-game/assets/vendor/three.min.js"></script>
 
   <!-- Скрипты моделей и полигона -->
-  <script src="src/textures.js?v=5.1"></script>
-  <script src="src/buildings.js?v=5.1"></script>
-  <script src="src/game.js?v=5.1"></script>
+  <script src="src/textures.js?v=5.2"></script>
+  <script src="src/buildings.js?v=5.2"></script>
+  <script src="src/game.js?v=5.2"></script>
 
 </body>
 </html>
